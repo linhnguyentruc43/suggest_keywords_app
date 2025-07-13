@@ -40,7 +40,7 @@ if current_user:
             return " ".join(history_df['keyword'].astype(str).tolist())
         except:
             return ""
-    user_history = load_user_history(history_file
+    user_history = load_user_history(history_file)
     # ----- TF-IDF MODEL -----
     vectorizer = TfidfVectorizer(stop_words='english')
     vectorizer.fit(df['keyword'])
