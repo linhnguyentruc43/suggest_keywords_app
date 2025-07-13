@@ -1,32 +1,48 @@
-# app.py - Triển khai trên Streamlit
 import streamlit as st
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-import re
-# Tiêu đề giao diện
-st.title("🔍 Ứng dụng gợi ý từ khóa tìm kiếm")
-# BƯỚC 1: TẢI DỮ LIỆU
-@st.cache_data
-def load_data():
-    df = pd.read_csv("keywords_sample.csv")
-    df = df.dropna(subset=['keyword'])
-    df['keyword'] = df['keyword'].astype(str).str.lower()
-    df['keyword'] = df['keyword'].str.replace(r"[^\w\s]", "", regex=True)
-    return df
-df = load_data()
-# BƯỚC 2: CHUYỂN TỪ KHÓA SANG VECTƠ TF-IDF
-vectorizer = TfidfVectorizer(stop_words='english')
-X = vectorizer.fit_transform(df['keyword'])
-# BƯỚC 3: NHẬP TỪ KHÓA VÀ GỢI Ý
-input_text = st.text_input("Nhập từ khóa bạn muốn tìm:")
-def suggest_keywords(input_text, top_n=5):
-    input_vec = vectorizer.transform([input_text])
-    cosine_sim = cosine_similarity(input_vec, X).flatten()
-    indices = cosine_sim.argsort()[-top_n:][::-1]
-    return df['keyword'].iloc[indices]
-if input_text:
-    st.subheader("🔎 Các từ khóa gợi ý:")
-    suggestions = suggest_keywords(input_text)
-    for i, kw in enumerate(suggestions, 1):
-        st.write(f"{i}. {kw}")
+# ------------------- 1. Đọc dữ liệu từ khóa -------------------
+df = pd.read_csv("keywords_sample.csv")
+keywords = df['keyword'].astype(str).tolist()
+# ------------------- 2. Hàm lưu lịch sử -------------------
+def save_query(user_id, query):
+    try:
+        history_df = pd.read_csv("search_history.csv")
+    except:
+        history_df = pd.DataFrame(columns=["user_id", "query"])
+    new_row = {"user_id": user_id, "query": query}
+    history_df = pd.concat([history_df, pd.DataFrame([new_row])], ignore_index=True)
+    history_df.to_csv("search_history.csv", index=False)
+
+# ------------------- 3. Lấy lịch sử người dùng -------------------
+def get_user_history(user_id):
+    try:
+        history_df = pd.read_csv("search_history.csv")
+        return history_df[history_df["user_id"] == user_id]["query"].tolist()
+    except:
+        return []
+# ------------------- 4. Hàm gợi ý từ khóa -------------------
+def suggest_keywords(user_input, user_id, top_n=5):
+    user_history = get_user_history(user_id)
+    # Tạo tập văn bản mở rộng gồm: user_input + lịch sử + từ khóa
+    documents = [user_input] + user_history + keywords
+    # TF-IDF và cosine
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(documents)
+    cosine_sim = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:])
+    # Bỏ phần lịch sử đầu tiên, chỉ lấy phần tương đồng với các từ khóa
+    sim_scores = cosine_sim[0][-len(keywords):]
+    # Trả về top N từ khóa liên quan
+    top_indices = sim_scores.argsort()[::-1][:top_n]
+    return [keywords[i] for i in top_indices]
+# ------------------- 5. Giao diện Streamlit -------------------
+st.title("🔍 Gợi ý từ khóa thông minh")
+user_id = "user1"  # Tạm thời giả định
+user_input = st.text_input("Nhập từ khóa bạn đang tìm kiếm:")
+if user_input:
+    save_query(user_id, user_input)
+    suggestions = suggest_keywords(user_input, user_id)
+    st.subheader("🔎 Từ khóa được đề xuất:")
+    for i, sug in enumerate(suggestions, 1):
+        st.write(f"{i}. {sug}")
