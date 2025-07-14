@@ -82,13 +82,14 @@ if current_user:
                 link = "#"
                 icon = "🔗"
             with cols[i % 2]:
-                st.markdown
+                st.markdown(
                     f"""
                     <div style='background-color:#f9f9f9;padding:15px;border-radius:10px;margin-bottom:10px;border-left:5px solid #4CAF50'>
                         <strong>{icon} <a href="{link}" target="_blank" style="text-decoration:none;color:#333">{keyword.title()}</a></strong>
                     </div>
                     """,
                     unsafe_allow_html=True
+                    )
         # Lưu lịch sử
         new_entry = pd.DataFrame({'keyword': [user_input]})
         try:
