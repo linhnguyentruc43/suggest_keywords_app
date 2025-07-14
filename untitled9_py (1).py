@@ -5,10 +5,10 @@ import glob
 import urllib.parse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-# ----- CÀI ĐẶT GIAO DIỆN -----
+# Cài đặt giao diện
 st.set_page_config(page_title="Keyword Recommender", layout="wide")
 st.markdown("<h1 style='text-align:center;'>✨ Gợi Ý Từ Khóa Cá Nhân Hóa</h1>", unsafe_allow_html=True)
-# ----- TẢI TỪ KHÓA -----
+# Tải từ khóa
 @st.cache_data
 def load_keywords():
     df = pd.read_csv("keywords_sample.csv")
@@ -16,11 +16,11 @@ def load_keywords():
     df['keyword'] = df['keyword'].astype(str).str.lower()
     return df
 df = load_keywords()
-# ----- LẤY DANH SÁCH NGƯỜI DÙNG -----
+# Lấy danh sách người dùng
 def get_all_users():
     files = glob.glob("search_history_*.csv")
     return sorted([os.path.splitext(os.path.basename(f))[0].replace("search_history_", "") for f in files])
-# ----- CHỌN NGƯỜI DÙNG -----
+# Chọn người dùng
 col1, col2 = st.columns([2, 3])
 with col1:
     new_user = st.text_input("🆕 Nhập tên người dùng mới:")
@@ -33,7 +33,7 @@ else:
     current_user = selected_user.strip().lower()
 if current_user:
     history_file = f"search_history_{current_user}.csv"
-    # ----- LOAD LỊCH SỬ NGƯỜI DÙNG -----
+# Load lịch sử người dùng
     def load_user_history(file_path):
         try:
             history_df = pd.read_csv(file_path)
@@ -41,7 +41,7 @@ if current_user:
         except:
             return ""
     user_history = load_user_history(history_file)
-    # ----- TF-IDF MODEL -----
+ # TF-IDF MODEL 
     vectorizer = TfidfVectorizer(stop_words='english')
     vectorizer.fit(df['keyword'])
     def suggest_keywords(input_text, top_n=5):
@@ -51,14 +51,14 @@ if current_user:
         cosine_sim = cosine_similarity(input_vec, keyword_vecs).flatten()
         top_indices = cosine_sim.argsort()[::-1][:top_n]
         return df['keyword'].iloc[top_indices]
-    # ----- CHỌN NỀN TẢNG TÌM KIẾM -----
+# Chọn nền tảng tìm kiếm
     st.markdown("### 🌐 Chọn nền tảng để tìm kiếm:")
     search_source = st.radio(
         "Nền tảng:",
         ["Google 🔍", "Wikipedia 📚", "Shopee 🛍", "YouTube ▶️"],
         horizontal=True,
     )
-    # ----- NHẬP TỪ KHÓA -----
+    # Nhập từ khóa
     user_input = st.text_input("✏️ Nhập từ khóa bạn muốn tìm:")
     if user_input:
         suggestions = suggest_keywords(user_input)
@@ -81,17 +81,15 @@ if current_user:
             else:
                 link = "#"
                 icon = "🔗"
-
             with cols[i % 2]:
-                st.markdown(
+                st.markdown
                     f"""
                     <div style='background-color:#f9f9f9;padding:15px;border-radius:10px;margin-bottom:10px;border-left:5px solid #4CAF50'>
                         <strong>{icon} <a href="{link}" target="_blank" style="text-decoration:none;color:#333">{keyword.title()}</a></strong>
                     </div>
                     """,
                     unsafe_allow_html=True
-                )
-        # ----- LƯU LỊCH SỬ -----
+        # Lưu lịch sử
         new_entry = pd.DataFrame({'keyword': [user_input]})
         try:
             old_df = pd.read_csv(history_file)
@@ -99,13 +97,22 @@ if current_user:
         except:
             updated_df = new_entry
         updated_df.to_csv(history_file, index=False)
-    # ----- GỢI Ý NGẪU NHIÊN MỖI LẦN TRUY CẬP -----
+    # Gợi ý ngẫu nhiên mỗi lần truy cập
     st.markdown("---")
     st.markdown("### 🎁 Gợi ý từ khóa hôm nay:")
     sample_kw = df.sample(3)['keyword'].tolist()
     for kw in sample_kw:
         st.markdown(f"- 🌟 **{kw.title()}**")
-    # ----- HIỂN THỊ LỊCH SỬ CŨ -----
+    # Hiển thị top từ khóa thịnh hành
+st.markdown("---")
+st.markdown("### 📊 Từ khóa thịnh hành theo năm:")
+trending_df = pd.read_csv("top_keywords_by_year.csv")
+years = sorted(trending_df['year'].unique(), reverse=True)
+selected_year = st.selectbox("Chọn năm:", years)
+filtered_trending = trending_df[trending_df['year'] == selected_year].sort_values(by='volume', ascending=False).head(5)
+for kw in filtered_trending['keyword']:
+    st.markdown(f"- 🔥 **{kw.title()}**")
+    # Hiển thị lịch sử cũ
     st.markdown("---")
     if os.path.exists(history_file):
         hist_df = pd.read_csv(history_file)
