@@ -103,15 +103,6 @@ if current_user:
     sample_kw = df.sample(3)['keyword'].tolist()
     for kw in sample_kw:
         st.markdown(f"- 🌟 **{kw.title()}**")
-    # Hiển thị top từ khóa thịnh hành
-st.markdown("---")
-st.markdown("### 📊 Từ khóa thịnh hành theo năm:")
-trending_df = pd.read_csv("top_keywords_by_year.csv")
-years = sorted(trending_df['year'].unique(), reverse=True)
-selected_year = st.selectbox("Chọn năm:", years)
-filtered_trending = trending_df[trending_df['year'] == selected_year].sort_values(by='volume', ascending=False).head(5)
-for kw in filtered_trending['keyword']:
-    st.markdown(f"- 🔥 **{kw.title()}**")
     # Hiển thị lịch sử cũ
     st.markdown("---")
     if os.path.exists(history_file):
